@@ -1,0 +1,75 @@
+---
+title: "1.0 Initial Analysis"
+output: html_notebook
+---
+
+Filter to Gen Med, Dispo Home
+```{r}
+#Filter to Medicine Teams Only
+dcgenmed <- dcfull %>% filter(grepl('Medicine Team', service.final)) %>% droplevels()
+
+#Filter to Dispo Home Only
+dcgenmedhome <- dcgenmed %>% filter(dispo == "Home or Self Care") %>% droplevels()
+dcfullhome <- dcfull %>% filter(dispo == "Home or Self Care") %>% droplevels()
+
+```
+
+Before 10am dc over time (weekly)
+```{r}
+#dcgenmedhome %>% filter(dc10am == "DC after 10am") %>% count(epiweek)
+#dcgenmedhome %>% filter(dc10am == "DC before 10am") %>% count(epiweek)
+
+library(RColorBrewer)
+dcovertime <- table(dcgenmedhome$dc10am, dcgenmedhome$epiweek)
+barplot(dcovertime, 
+        main = "Gen Med Discharges Before vs After 10am", 
+        col = brewer.pal(3, "Paired"),
+        xlab="Week", 
+        ylab = "# Discharges")
+legend("topright",
+       legend = rownames(dcovertime),
+       col = brewer.pal(3, "Paired"),
+       pch = 16,
+       cex = 0.5)
+```
+
+
+Discharges by hour
+```{r}
+daily.dcorder <- dcgenmedhome %>% count(dcorder.hour) %>% rename(time = dcorder.hour)
+ggbarplot(daily.dcorder, x = "dcorder.hour", y = "n")
+daily.dcactual <- dcgenmedhome %>% count(dcactual.hour) %>% rename(time = dcactual.hour)
+daily.dc <- merge(x = daily.dcorder,
+      y = daily.dcactual,
+      by = "time") %>% rename(dcorder = n.x, dcactual = n.y)
+
+dcgenmedhome %>% count(dcorder.hour)
+
+ggbarplot(daily.dc, x = "time", y = "dcorder")
+ggbarplot(daily.dc, x = "time", y = "dcactual")
+
+
+```
+
+% before noon
+```{r}
+summary(dcgenmedhome$dc10am)
+table(dcgenmedhome$service.final,dcgenmedhome$dc10am) %>% prop.table(1)
+table(dcfullhome$service.final,dcfullhome$dc10am) %>% prop.table(1)
+```
+
+Median Discharge Time
+```{r}
+library(chron)
+
+#only 2021
+dcgenmedhome.21 <- dcgenmedhome %>% filter(d.dc >= as.Date("2021-01-01")) 
+
+times(dcgenmedhome$t.dcorder) %>% median()
+times(dcgenmedhome.21$t.dcorder) %>% median
+
+times(dcgenmedhome$t.dcactual) %>% median()
+times(dcgenmedhome.21$t.dcactual) %>% median()
+
+```
+

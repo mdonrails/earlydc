@@ -1,0 +1,61 @@
+---
+title: "0. Data Import & Cleaning"
+output: html_notebook
+---
+
+Import
+```{r}
+library(readxl)
+dcfull <- read_excel("~/Library/Mobile Documents/com~apple~CloudDocs/Documents/Early Discharge Project/dcdata_202009to202103.xlsx", 
+     sheet = "Data_Org", col_types = c("date", 
+         "date", "skip", "skip", "skip", 
+         "text", "text", "text", "numeric", 
+         "text", "text", "text", "text", "text", 
+         "text"))
+View(dcfull)
+
+library(tidyverse)
+library(lubridate)
+```
+
+Converting Dates
+```{r}
+dcfull$dt.dcorder <- mdy_hms(dcfull$dt.dcorder)
+dcfull$dt.avsprint <- mdy_hms(dcfull$dt.avsprint)
+dcfull$dt.dcactual<- mdy_hms(dcfull$dt.dcactual)
+```
+
+Defining Factors
+```{r}
+dcfull$service.final <- factor(dcfull$service.final)
+dcfull$service.original <- factor(dcfull$service.original)
+dcfull$dispo <- factor(dcfull$dispo)
+dcfull$dispo.dest <- factor(dcfull$dispo.dest)
+dcfull$unit <- factor(dcfull$unit)
+dcfull$doc <- factor(dcfull$doc)
+```
+
+Extract Times
+```{r}
+dcfull$t.dcorder <- format(dcfull$dt.dcorder, format = "%H:%M:%S")
+dcfull$t.dcactual <- format(dcfull$dt.dcactual, format = "%H:%M:%S")
+dcfull$t.avsprint <- format(dcfull$dt.avsprint, format = "%H:%M:%S")
+```
+
+Percent DC before 10am
+```{r}
+dcfull$dc10am <- ifelse(dcfull$t.dcorder <= "10:00:00", 1, 0) %>% factor(levels = c(0,1), labels = c("DC after 10am", "DC before 10am"))
+```
+
+Epiweek & Hour
+```{r}
+dcfull$epiweek <-  epiweek(dcfull$d.dc)
+dcfull$dcorder.hour <- hour(dcfull$dt.dcorder) %>% factor()
+dcfull$dcactual.hour <- hour(dcfull$dt.dcactual) %>% factor()
+```
+
+Overall Data
+```{r}
+dcfull %>% count(service.final,dc10am)
+```
+
